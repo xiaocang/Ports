@@ -25,22 +25,19 @@ struct MainView<ViewModelType: MainViewModelType>: View {
         let processes = viewModel.processList.processes
         guard !searchText.isEmpty else { return processes }
         let query = searchText.lowercased()
-        return processes.filter { process in
-            if process.name.lowercased().contains(query) {
-                return true
+        return processes.compactMap { process -> Process? in
+            // If name or pid matches, show all sockets
+            if process.name.lowercased().contains(query) || String(process.pid).contains(query) {
+                return process
             }
-            if String(process.pid).contains(query) {
-                return true
+            // Otherwise, filter sockets that match
+            let matchingSockets = process.sockets.filter { socket in
+                String(socket.port).contains(query) || socket.address.lowercased().contains(query)
             }
-            for socket in process.sockets {
-                if String(socket.port).contains(query) {
-                    return true
-                }
-                if socket.address.lowercased().contains(query) {
-                    return true
-                }
+            if matchingSockets.isEmpty {
+                return nil
             }
-            return false
+            return Process(pid: process.pid, name: process.name, sockets: matchingSockets)
         }
     }
 
@@ -56,6 +53,7 @@ struct MainView<ViewModelType: MainViewModelType>: View {
                     }
             }
             .listStyle(.sidebar)
+            .id(searchText)
             HStack {
                 Spacer()
                 Menu {

@@ -12,6 +12,7 @@ import ShellOut
 struct ProcessView: View {
 
     var item: Process
+    private let compactThreshold = 3
 
     @Binding var hovered: Process?
     @Binding var error: IdentifiableError?
@@ -21,6 +22,29 @@ struct ProcessView: View {
         formatter.hasThousandSeparators = false
         return formatter
     }()
+
+    private var uniquePorts: [Int] {
+        Array(Set(item.sockets.map { $0.port })).sorted()
+    }
+
+    private var groupedSockets: [(port: Int, addresses: [String])] {
+        var portToAddresses: [Int: [String]] = [:]
+        for socket in item.sockets {
+            if portToAddresses[socket.port] == nil {
+                portToAddresses[socket.port] = []
+            }
+            if !portToAddresses[socket.port]!.contains(socket.address) {
+                portToAddresses[socket.port]!.append(socket.address)
+            }
+        }
+        return portToAddresses.keys.sorted().map { port in
+            (port: port, addresses: portToAddresses[port]!)
+        }
+    }
+
+    private var shouldUseCompactView: Bool {
+        item.sockets.count > compactThreshold
+    }
 
     var body: some View {
         HStack(alignment: .top) {
@@ -45,33 +69,51 @@ struct ProcessView: View {
                 .foregroundColor(.secondary)
             }
             Spacer()
-            VStack(alignment: .trailing, spacing: 4) {
-                ForEach(item.sockets, id: \.id) { socket in
-                    HStack(alignment: .firstTextBaseline) {
-                        Text(socket.type.rawValue)
-                            .foregroundColor(.gray)
-                            .font(.caption)
-                            .lineLimit(1)
-                        HStack(alignment: .firstTextBaseline, spacing: 0) {
-                            Text("\(socket.address)")
-                                .font(.monospacedDigit(.body)())
-                                .lineLimit(1)
-                            Text(":")
-                                .lineLimit(1)
-                            Text(String(socket.port))
-                                .font(.monospacedDigit(.headline)())
-                                .lineLimit(1)
-                        }
-                    }
-                }
+            if shouldUseCompactView {
+                compactPortsView
+            } else {
+                normalPortsView
             }
-            .layoutPriority(1)
         }
         .onHover { isHovered in
             if isHovered {
                 hovered = item
             } else if hovered == item {
                 hovered = nil
+            }
+        }
+    }
+
+    private var normalPortsView: some View {
+        VStack(alignment: .trailing, spacing: 4) {
+            ForEach(item.sockets, id: \.id) { socket in
+                HStack(alignment: .firstTextBaseline) {
+                    Text(socket.type.rawValue)
+                        .foregroundColor(.gray)
+                        .font(.caption)
+                        .lineLimit(1)
+                    HStack(alignment: .firstTextBaseline, spacing: 0) {
+                        Text("\(socket.address)")
+                            .font(.monospacedDigit(.body)())
+                            .lineLimit(1)
+                        Text(":")
+                            .lineLimit(1)
+                        Text(String(socket.port))
+                            .font(.monospacedDigit(.headline)())
+                            .lineLimit(1)
+                    }
+                }
+            }
+        }
+        .layoutPriority(1)
+    }
+
+    private var compactPortsView: some View {
+        VStack(alignment: .trailing, spacing: 1) {
+            ForEach(groupedSockets, id: \.port) { group in
+                Text("\(group.addresses.joined(separator: ",")):\(group.port)")
+                    .font(.monospacedDigit(.caption)())
+                    .foregroundColor(.secondary)
             }
         }
     }

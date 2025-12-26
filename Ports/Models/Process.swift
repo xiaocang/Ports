@@ -36,5 +36,7 @@ extension Process: Equatable {
 }
 
 extension Process: Identifiable {
-    var id: Int { pid }
+    var id: String {
+        "\(pid)-\(sockets.map { $0.id }.joined(separator: ","))"
+    }
 }
