@@ -31,18 +31,18 @@ struct MainView<ViewModelType: MainViewModelType>: View {
             .listStyle(.sidebar)
             HStack {
                 Spacer()
-                MenuButton(
-                    label: Image(systemName: "gearshape.fill"),
-                    content: {
-                        Button(localizedString("openWebsite")) {
-                            NSWorkspace.shared.open(URL(string: "https://chaosspace.de/ports?utm_source=portsapp")!)
-                        }
-                        Button(localizedString("quit")) {
-                            exit(0)
-                        }
-                    })
-                    .frame(width: 20, height: 20)
-                .menuButtonStyle(BorderlessButtonMenuButtonStyle())
+                Menu {
+                    Button(localizedString("openWebsite")) {
+                        NSWorkspace.shared.open(URL(string: "https://chaosspace.de/ports?utm_source=portsapp")!)
+                    }
+                    Button(localizedString("quit")) {
+                        exit(0)
+                    }
+                } label: {
+                    Image(systemName: "gearshape.fill")
+                }
+                .menuStyle(.borderlessButton)
+                .frame(width: 20, height: 20)
                 .padding(EdgeInsets(top: 0, leading: 10, bottom: 10, trailing: 10))
             }
         }
@@ -61,12 +61,12 @@ protocol MainViewModelType: ObservableObject {
 }
 
 class MainViewModel: ObservableObject, MainViewModelType {
-    @ObservedObject var processManager: ProcessManager
+    private let processManager: ProcessManager
     @Published var processList: ProcessList
 
     init(processManager: ProcessManager) {
         self.processManager = processManager
-        self.processList = ProcessList(lastUpdated: Date(), processes: [])
+        self.processList = processManager.processList
         processManager.$processList.assign(to: &$processList)
     }
 

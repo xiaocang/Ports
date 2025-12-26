@@ -31,20 +31,12 @@ class StatusBarController: NSObject, NSPopoverDelegate {
             statusBarButton.image = NSImage(named: "MenuBarIcon")
             statusBarButton.image?.size = NSSize(width: 18.0, height: 18.0)
             statusBarButton.image?.isTemplate = true
-            statusBarButton.setButtonType(.onOff)
-
-            NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
-                if event.window == self?.statusItem.button?.window {
-                    self?.togglePopover(sender: statusBarButton)
-                    return nil
-                }
-
-                return event
-            }
+            statusBarButton.action = #selector(togglePopover)
+            statusBarButton.target = self
         }
     }
 
-    @objc func togglePopover(sender: AnyObject) {
+    @objc func togglePopover(_ sender: AnyObject) {
         if popover.isShown {
             hidePopover(sender)
         } else {
