@@ -19,10 +19,37 @@ struct MainView<ViewModelType: MainViewModelType>: View {
     @ObservedObject var viewModel: ViewModelType
     @State var error: IdentifiableError?
     @State var hoveredProcess: Process?
+    @State var searchText: String = ""
+
+    var filteredProcesses: [Process] {
+        let processes = viewModel.processList.processes
+        guard !searchText.isEmpty else { return processes }
+        let query = searchText.lowercased()
+        return processes.filter { process in
+            if process.name.lowercased().contains(query) {
+                return true
+            }
+            if String(process.pid).contains(query) {
+                return true
+            }
+            for socket in process.sockets {
+                if String(socket.port).contains(query) {
+                    return true
+                }
+                if socket.address.lowercased().contains(query) {
+                    return true
+                }
+            }
+            return false
+        }
+    }
 
     var body: some View {
-        VStack(alignment: .leading) {
-            List(viewModel.processList.processes, id: \.id) { item in
+        VStack(alignment: .leading, spacing: 0) {
+            TextField("Search by name, port, or address...", text: $searchText)
+                .textFieldStyle(.roundedBorder)
+                .padding(8)
+            List(filteredProcesses, id: \.id) { item in
                 ProcessView(item: item, hovered: $hoveredProcess, error: $error)
                     .onTapGesture {
                         viewModel.update()
